@@ -1,4 +1,5 @@
 # archivist go
+[![Go](https://github.com/sam-k0/archivistgo/actions/workflows/go.yml/badge.svg)](https://github.com/sam-k0/archivistgo/actions/workflows/go.yml)
 
 nhentai.net downloader written in go.
 
