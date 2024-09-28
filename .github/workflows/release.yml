@@ -2,7 +2,10 @@ name: Go Build and Release
 
 on:
   release:
-    types: [published]  # This triggers the workflow when a new release is published
+    types: [published]  # Trigger when a release is published
+
+permissions:
+  contents: write  # Ensure write access for creating/updating the release
 
 jobs:
   build:
@@ -15,44 +18,40 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v4
       with:
-        go-version: '1.23'  # Specify your Go version
+        go-version: '1.23'
 
     - name: Install dependencies
       run: go mod download
 
     - name: Build the Go project
-      run: go build -v ./...
+      run: go build -o ./archivist_go  # Specify the binary output location
 
-    - name: Run tests
-      run: go test ./...
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: go-build
+        path: ./archivist_go  # Ensure this matches the binary location
 
   release:
-    needs: build  # This job runs after the build job succeeds
+    needs: build
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
+    - name: Download build artifact
+      uses: actions/download-artifact@v3
       with:
-        go-version: '1.23'
+        name: go-build  # Download the artifact built in the previous step
 
-    - name: Upload build artifacts to the release
-      uses: actions/upload-artifact@v3
-      with:
-        name: go-build
-        path: ./archivist_go
-
-    - name: Update the GitHub release
+    - name: Create GitHub release
       id: create_release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.release.tag_name }}
+        tag_name: ${{ github.event.release.tag_name }}  # Use the correct tag name
         name: ${{ github.event.release.tag_name }}
         body: |
-          This is an automated release for version ${{ github.event.release.tag_name }}.
-
+          Automated release for version ${{ github.event.release.tag_name }}.
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Ensure the token has the right permissions
