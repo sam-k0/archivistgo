@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
 )
 
 type HentaiDict struct {
@@ -49,6 +54,23 @@ type HentaiDict struct {
 	NumFavorites int `json:"num_favorites"`
 }
 
+func ReadHentaiDownloadFile(fpath string) []string {
+	// Open the file
+	file, err := os.Open(fpath)
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+
+	// Read the file
+	links := []string{}
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		links = append(links, scanner.Text())
+	}
+	return links
+}
+
 func getByID(id string) HentaiDict {
 	// Perform a GET request
 	resp, err := http.Get("http://nhentai.net/api/gallery/" + id)
@@ -76,4 +98,28 @@ func getByID(id string) HentaiDict {
 	hentai.Images.Cover.Url = fmt.Sprintf("https://t.nhentai.net/galleries/%s/cover.jpg", hentai.MediaID)
 	hentai.Images.Thumbnail.Url = fmt.Sprintf("https://t.nhentai.net/galleries/%s/thumb.jpg", hentai.MediaID)
 	return hentai
+}
+
+// Download a whole hentai
+// hentai: The hentai to download
+// path: The directory to save the hentai, will be populated with the cover and pages
+func DownloadHentai(hentai HentaiDict, path string) string {
+	path = filepath.Join(path, strconv.Itoa(hentai.ID))
+	// Check if the directory exists
+	if _, err := os.Stat(path); err == nil {
+		fmt.Println("Hentai already downloaded")
+		return path
+	}
+
+	println("Downloading hentai")
+	os.MkdirAll(path, os.ModePerm)
+	// Download the pages
+	for i, page := range hentai.Images.Pages {
+		downloadFile(page.Url, fmt.Sprintf("%s/%d.jpg", path, i))
+		// Sleep for a bit to avoid rate limiting
+		time.Sleep(time.Millisecond * 100)
+
+		println("Downloaded", i, "of", len(hentai.Images.Pages))
+	}
+	return path
 }
