@@ -1,0 +1,60 @@
+name: Go Build and Release
+
+on:
+  push:
+    branches:
+      - main  # This will trigger on pushes to the 'main' branch
+  pull_request:
+    branches:
+      - main  # This will also trigger on pull requests targeting the 'main' branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'  # Specify your Go version
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Build the Go project
+      run: go build -v ./...
+
+  release:
+    needs: build  # This job runs after the build job succeeds
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'  # Only runs on push events, not pull requests
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'  # Ensure the Go environment is set
+
+    - name: Create a GitHub release
+      id: create_release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.sha }}  # Use the commit SHA as the tag name
+        name: Release ${{ github.sha }}  # Use the commit SHA as the release name
+        body: |
+          Automated release from commit: ${{ github.sha }}.
+
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # GitHub provides this secret automatically
+
+    - name: Upload build artifacts to the release
+      uses: actions/upload-artifact@v3
+      with:
+        name: go-build
+        path: ./archivist_go  # Adjust to the actual build output file
