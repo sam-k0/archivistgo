@@ -22,7 +22,6 @@ func setup() {
 
 func main() {
 	setup() // Create directories if not exist
-
 	if len(os.Args) == 2 {
 		println("Single argument mode: A single nhentai or bunkr album will be downloaded.")
 		arg := os.Args[1]
